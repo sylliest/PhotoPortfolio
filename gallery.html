@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Photo Gallery</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@700;800&family=Barlow+Condensed:wght@700;800;900&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --navy:       #0B0B5C;
+    --navy-dark:  #07073D;
+    --cream:      #F4F0E6;
+    --blue:       #1A1AE0;
+    --blue-bright:#2525F5;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--navy); font-family: 'Barlow', sans-serif; min-height: 100vh; color: var(--cream); overflow-x: hidden; }
+  body::before {
+    content: ''; position: fixed; inset: 0;
+    background-image: repeating-linear-gradient(-55deg,transparent,transparent 18px,rgba(255,255,255,.025) 18px,rgba(255,255,255,.025) 20px);
+    pointer-events: none; z-index: 0;
+  }
+
+  /* ── HEADER ── */
+  header {
+    position: relative; z-index: 10; background: var(--cream);
+    padding: 0 60px;
+  }
+
+  /* Subtle top login bar */
+  .top-auth {
+    display: flex; align-items: center; justify-content: flex-end;
+    padding: 10px 0; border-bottom: 1px solid rgba(11,11,92,0.1);
+    gap: 8px; min-height: 42px;
+  }
+
+  .auth-form { display: flex; align-items: center; gap: 8px; }
+
+  .auth-input {
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 700;
+    font-size: 13px; letter-spacing: 1px; color: var(--navy);
+    background: transparent; border: none; border-bottom: 1.5px solid rgba(11,11,92,0.25);
+    padding: 4px 2px; outline: none; width: 110px; transition: border-color 0.2s;
+  }
+  .auth-input::placeholder { color: rgba(11,11,92,0.35); font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; }
+  .auth-input:focus { border-color: var(--blue); }
+
+  .auth-submit {
+    background: none; border: none; cursor: pointer; color: var(--navy);
+    font-size: 18px; padding: 2px 4px; line-height: 1;
+    opacity: 0.5; transition: opacity 0.15s, transform 0.15s;
+  }
+  .auth-submit:hover { opacity: 1; transform: translateX(2px); }
+
+  .auth-status {
+    display: none; align-items: center; gap: 12px;
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 800;
+    font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: var(--blue);
+  }
+  .auth-status .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--blue); display: inline-block; }
+  .logout-link {
+    background: none; border: none; cursor: pointer; color: rgba(11,11,92,0.4);
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 11px;
+    letter-spacing: 2px; text-transform: uppercase; text-decoration: none;
+    transition: color 0.15s; padding: 0;
+  }
+  .logout-link:hover { color: var(--navy); }
+
+  .auth-error {
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 800;
+    font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase;
+    color: #b00; display: none;
+  }
+
+  .auth-loading {
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 800;
+    font-size: 11px; letter-spacing: 2px; text-transform: uppercase;
+    color: rgba(11,11,92,0.4); display: none;
+  }
+
+  .lockout-text {
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 800;
+    font-size: 11px; letter-spacing: 1.5px; color: #b00; display: none;
+  }
+
+  /* Attempt dots */
+  .attempt-dots { display: flex; gap: 4px; align-items: center; }
+  .attempt-dot { width: 6px; height: 6px; border-radius: 50%; border: 1.5px solid rgba(11,11,92,0.3); background: transparent; transition: background 0.15s; }
+  .attempt-dot.used { background: #b00; border-color: #b00; }
+
+  /* Main header content */
+  .header-main {
+    padding: 40px 0 36px;
+    display: flex; align-items: flex-end; justify-content: space-between; gap: 32px; flex-wrap: wrap;
+  }
+
+  .header-left h1 { font-family: 'Bebas Neue', sans-serif; font-size: clamp(64px, 10vw, 120px); line-height: 0.9; color: var(--blue); letter-spacing: 2px; }
+  .header-left p { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 16px; color: var(--navy); max-width: 400px; margin-top: 14px; line-height: 1.5; }
+
+  .add-btn {
+    background: var(--blue); color: #fff; border: none;
+    font-family: 'Bebas Neue', sans-serif; font-size: 26px; letter-spacing: 2px;
+    padding: 14px 36px; cursor: pointer; transition: background 0.15s, transform 0.12s;
+    clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
+    display: none;
+  }
+  .add-btn:hover { background: var(--navy); transform: translateY(-2px); }
+
+  /* ── FILTER BAR ── */
+  .filter-bar {
+    position: relative; z-index: 10; background: var(--navy-dark);
+    padding: 20px 60px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    border-top: 4px solid var(--blue); border-bottom: 4px solid var(--blue);
+  }
+  .filter-label-title { font-family: 'Bebas Neue', sans-serif; font-size: 20px; color: var(--cream); opacity: 0.5; letter-spacing: 2px; margin-right: 8px; flex-shrink: 0; }
+  .tag-pill { font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 14px; letter-spacing: 1.5px; text-transform: uppercase; padding: 6px 18px; border: 2.5px solid rgba(100,100,255,.45); background: transparent; color: rgba(255,255,255,.65); cursor: pointer; border-radius: 2px; transition: all 0.15s; }
+  .tag-pill:hover { background: var(--blue-bright); border-color: var(--blue-bright); color: #fff; transform: translateY(-1px); }
+  .tag-pill.active { background: var(--blue); border-color: var(--blue); color: #fff; }
+  .manage-labels-btn { background: none; border: 2px solid rgba(255,255,255,.2); color: rgba(255,255,255,.5); font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; padding: 5px 14px; cursor: pointer; transition: all 0.15s; margin-left: auto; flex-shrink: 0; display: none; }
+  .manage-labels-btn:hover { border-color: rgba(255,255,255,.5); color: #fff; }
+
+  /* ── GALLERY ── */
+  main { position: relative; z-index: 10; padding: 48px 60px; }
+  .gallery-count { font-family: 'Bebas Neue', sans-serif; font-size: 18px; color: rgba(255,255,255,.3); letter-spacing: 3px; margin-bottom: 28px; }
+  .gallery-grid { columns: 3 320px; column-gap: 20px; }
+  .gallery-item { background: var(--cream); break-inside: avoid; margin-bottom: 20px; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; position: relative; overflow: hidden; }
+  .gallery-item:hover { transform: translateY(-4px) rotate(-.5deg); box-shadow: 8px 8px 0 var(--blue-bright); z-index: 2; }
+  .gallery-item img { display: block; width: 100%; object-fit: cover; }
+  .gallery-item-info { padding: 16px 18px 20px; }
+  .gallery-item-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+  .item-tag { font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; padding: 3px 10px; border-radius: 1px; background: var(--blue); color: #fff; }
+  .gallery-item-title { font-family: 'Bebas Neue', sans-serif; font-size: 22px; color: var(--blue); letter-spacing: 1px; margin-bottom: 4px; }
+  .gallery-item-desc { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 15px; color: var(--navy); line-height: 1.4; }
+  .delete-btn { position: absolute; top: 8px; right: 8px; background: rgba(10,10,80,.88); color: #fff; border: none; font-size: 11px; font-family: 'Barlow Condensed', sans-serif; font-weight: 800; letter-spacing: 1px; padding: 5px 10px; cursor: pointer; opacity: 0; transition: opacity 0.15s; border-radius: 1px; display: none; }
+  .gallery-item:hover .delete-btn { opacity: 1; }
+  .empty-state { text-align: center; padding: 80px 20px; color: rgba(255,255,255,.2); }
+  .empty-state h2 { font-family: 'Bebas Neue', sans-serif; font-size: 64px; letter-spacing: 3px; margin-bottom: 12px; }
+  .empty-state p { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 18px; letter-spacing: 1px; }
+
+  /* ── MODALS ── */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(7,7,61,.93); z-index: 1000; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(4px); }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--cream); width: 100%; max-width: 560px; position: relative; animation: slideUp .25s ease; max-height: 92vh; overflow-y: auto; }
+  @keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  .modal-header { background: var(--blue); padding: 20px 28px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1; }
+  .modal-header h2 { font-family: 'Bebas Neue', sans-serif; font-size: 36px; color: #fff; letter-spacing: 2px; }
+  .modal-close { background: none; border: 2px solid rgba(255,255,255,.4); color: #fff; font-family: 'Bebas Neue', sans-serif; font-size: 20px; width: 36px; height: 36px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: border-color 0.15s; flex-shrink: 0; }
+  .modal-close:hover { border-color: #fff; }
+  .modal-body { padding: 28px; display: flex; flex-direction: column; gap: 18px; }
+  .form-group { display: flex; flex-direction: column; gap: 8px; }
+  .form-group label { font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 13px; letter-spacing: 2px; text-transform: uppercase; color: var(--navy); }
+  .form-group input, .form-group textarea { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 16px; color: var(--navy); border: 2.5px solid var(--navy); background: #fff; padding: 10px 14px; outline: none; transition: border-color 0.15s; width: 100%; }
+  .form-group input:focus, .form-group textarea:focus { border-color: var(--blue-bright); }
+  .form-group textarea { resize: vertical; min-height: 80px; }
+  .img-preview { width: 100%; max-height: 180px; object-fit: cover; display: none; border: 2px solid var(--navy); margin-top: 8px; }
+  .upload-zone { border: 3px dashed var(--navy); background: #fff; text-align: center; padding: 24px; cursor: pointer; transition: border-color 0.15s, background 0.15s; position: relative; }
+  .upload-zone:hover, .upload-zone.drag-over { border-color: var(--blue-bright); background: #f0f0ff; }
+  .upload-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .upload-zone-icon { font-size: 32px; margin-bottom: 6px; display: block; }
+  .upload-zone p { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 14px; color: var(--navy); letter-spacing: 1px; }
+  .upload-zone p strong { color: var(--blue); }
+  .tag-input-wrapper { display: flex; gap: 8px; flex-wrap: wrap; border: 2.5px solid var(--navy); background: #fff; padding: 8px 10px; min-height: 48px; align-items: center; cursor: text; }
+  .tag-chip { display: flex; align-items: center; gap: 5px; font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; padding: 3px 10px; color: #fff; border-radius: 1px; background: var(--blue); }
+  .remove-tag { background: none; border: none; color: rgba(255,255,255,.7); cursor: pointer; font-size: 14px; line-height: 1; padding: 0; }
+  #tag-text-input { border: none; outline: none; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 15px; color: var(--navy); background: transparent; flex: 1; min-width: 80px; }
+  #tagSuggestions { display: none; background: #fff; border: 2px solid var(--navy); border-top: none; max-height: 120px; overflow-y: auto; }
+  .suggestion-row { padding: 8px 14px; cursor: pointer; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 15px; color: var(--navy); border-bottom: 1px solid #eee; }
+  .suggestion-row:hover { background: #eeeeff; }
+  .modal-footer { padding: 0 28px 28px; display: flex; gap: 12px; justify-content: flex-end; }
+  .btn-cancel { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 1.5px; padding: 10px 28px; background: transparent; border: 2.5px solid var(--navy); color: var(--navy); cursor: pointer; transition: all 0.15s; }
+  .btn-cancel:hover { background: var(--navy); color: #fff; }
+  .btn-save { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 1.5px; padding: 10px 36px; background: var(--blue); border: 2.5px solid var(--blue); color: #fff; cursor: pointer; transition: all 0.15s; clip-path: polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%); }
+  .btn-save:hover { background: var(--navy); border-color: var(--navy); }
+  #existingLabelsList { display: flex; flex-wrap: wrap; gap: 8px; min-height: 40px; }
+
+  /* ── LIGHTBOX ── */
+  .lightbox { display: none; position: fixed; inset: 0; background: rgba(7,7,61,.97); z-index: 2000; align-items: center; justify-content: center; flex-direction: column; gap: 20px; padding: 30px; }
+  .lightbox.open { display: flex; }
+  .lightbox img { max-width: 90vw; max-height: 70vh; object-fit: contain; border: 4px solid var(--cream); box-shadow: 0 0 60px rgba(26,26,224,.4); animation: zoomIn .2s ease; }
+  @keyframes zoomIn { from { transform: scale(.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .lightbox-info { text-align: center; max-width: 600px; }
+  .lightbox-title { font-family: 'Bebas Neue', sans-serif; font-size: 36px; color: var(--cream); letter-spacing: 2px; }
+  .lightbox-desc { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 16px; color: rgba(255,255,255,.6); margin-top: 6px; }
+  .lightbox-tags { display: flex; gap: 8px; justify-content: center; margin-top: 10px; flex-wrap: wrap; }
+  .lightbox-close { position: fixed; top: 20px; right: 24px; font-family: 'Bebas Neue', sans-serif; font-size: 28px; color: var(--cream); background: none; border: 2px solid rgba(255,255,255,.3); padding: 4px 14px; cursor: pointer; letter-spacing: 2px; transition: border-color 0.15s; }
+  .lightbox-close:hover { border-color: #fff; }
+
+  /* ── SETUP PAGE ── */
+  #setupPage { display: none; position: fixed; inset: 0; background: var(--navy); z-index: 9999; align-items: center; justify-content: center; padding: 20px; overflow-y: auto; }
+  #setupPage.open { display: flex; }
+  .setup-box { background: var(--cream); max-width: 620px; width: 100%; animation: slideUp .3s ease; margin: auto; }
+  .setup-header { background: var(--blue); padding: 24px 32px; }
+  .setup-header h2 { font-family: 'Bebas Neue', sans-serif; font-size: 40px; color: #fff; letter-spacing: 2px; }
+  .setup-header p { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 14px; color: rgba(255,255,255,.75); margin-top: 4px; letter-spacing: 1px; }
+  .setup-body { padding: 32px; display: flex; flex-direction: column; gap: 20px; }
+  .setup-section { border-top: 2px solid rgba(11,11,92,.1); padding-top: 20px; }
+  .setup-section-title { font-family: 'Bebas Neue', sans-serif; font-size: 22px; color: var(--blue); letter-spacing: 1px; margin-bottom: 16px; }
+  .setup-result { background: var(--navy-dark); padding: 20px; display: none; flex-direction: column; gap: 14px; }
+  .setup-result p { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 12px; letter-spacing: 1.5px; color: rgba(255,255,255,.5); text-transform: uppercase; margin-bottom: 4px; }
+  .hash-line { font-family: monospace; font-size: 12px; color: #7eff9e; background: rgba(0,0,0,.4); padding: 10px 14px; word-break: break-all; border-left: 3px solid var(--blue); user-select: all; cursor: text; }
+  .copy-btn { font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.2); color: rgba(255,255,255,.7); padding: 4px 12px; cursor: pointer; transition: all 0.15s; margin-top: 4px; width: fit-content; }
+  .copy-btn:hover { background: rgba(255,255,255,.2); color: #fff; }
+  .setup-note { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 14px; color: var(--navy); line-height: 1.6; background: #fff3cd; border: 2px solid #e6a817; padding: 14px 18px; }
+  .setup-note code { background: rgba(0,0,0,.08); padding: 1px 5px; font-size: 13px; }
+  .setup-note ol { margin: 8px 0 0 18px; }
+  .setup-note li { margin-bottom: 4px; }
+
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--navy-dark); }
+  ::-webkit-scrollbar-thumb { background: var(--blue); border-radius: 3px; }
+
+  @media (max-width: 700px) {
+    header, .filter-bar, main { padding-left: 20px; padding-right: 20px; }
+    .gallery-grid { columns: 1; }
+    .auth-input { width: 80px; }
+  }
+</style>
+</head>
+<body>
+
+<!--
+═══════════════════════════════════════════════════════════════════════
+  CONFIGURATION — fill these in after running the ?setup tool
+═══════════════════════════════════════════════════════════════════════
+  1. Visit  yourgallery.html?setup  in your browser
+  2. Enter your GitHub token, name, and password
+  3. Copy the generated values into the constants below
+  4. Push gallery.html + gallery-data.json to GitHub
+═══════════════════════════════════════════════════════════════════════
+-->
+<script>
+  // Your GitHub username and repository name
+  const REPO_OWNER  = 'yourusername';     // ← change this
+  const REPO_NAME   = 'yourrepo';         // ← change this
+  const DATA_FILE   = 'gallery-data.json';
+
+  // Generated by ?setup — never put your real token or password here
+  // The token below is AES-256-GCM encrypted; it's useless without your password
+  const ENCRYPTED_TOKEN = '';  // ← paste from ?setup
+</script>
+<!-- ════════════════════════════════════════════════════════════════ -->
+
+
+<!-- ══ SETUP PAGE (only shown at ?setup) ══════════════════════════ -->
+<div id="setupPage">
+  <div class="setup-box">
+    <div class="setup-header">
+      <h2>⚙ FIRST-TIME SETUP</h2>
+      <p>Run once to generate your encrypted credentials. Never share the output.</p>
+    </div>
+    <div class="setup-body">
+
+      <div class="setup-section">
+        <div class="setup-section-title">1 — GitHub Token</div>
+        <div class="form-group">
+          <label>Personal Access Token</label>
+          <input type="password" id="s-token" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" autocomplete="off" />
+        </div>
+        <div class="setup-note">
+          Generate at <strong>github.com → Settings → Developer settings → Personal access tokens → Fine-grained tokens</strong>.<br>
+          Grant <strong>Contents: Read and write</strong> for this repository only.
+        </div>
+      </div>
+
+      <div class="setup-section">
+        <div class="setup-section-title">2 — Your Login Credentials</div>
+        <div class="form-group">
+          <label>Your Name</label>
+          <input type="text" id="s-name" placeholder="e.g. yourname" autocomplete="off" />
+        </div>
+        <div class="form-group">
+          <label>Your Password</label>
+          <input type="password" id="s-pass" placeholder="Use something strong!" autocomplete="new-password" />
+        </div>
+      </div>
+
+      <button class="btn-save" style="width:100%;text-align:center;clip-path:none" onclick="runSetup()">GENERATE ENCRYPTED CONFIG</button>
+
+      <div class="setup-result" id="setupResult">
+        <div>
+          <p>ENCRYPTED_TOKEN — paste into gallery.html:</p>
+          <div class="hash-line" id="s-out-token"></div>
+          <button class="copy-btn" onclick="copyEl('s-out-token')">COPY</button>
+        </div>
+        <div class="setup-note">
+          <strong>How to apply:</strong>
+          <ol>
+            <li>Open <code>gallery.html</code> in a text editor.</li>
+            <li>Set <code>REPO_OWNER</code> and <code>REPO_NAME</code> at the top.</li>
+            <li>Replace the empty string for <code>ENCRYPTED_TOKEN</code> with the value above.</li>
+            <li>Create an empty <code>gallery-data.json</code> file in the same repo with content: <code>{"images":[],"labels":["Design","Photo","Motion","Branding"]}</code></li>
+            <li>Push both files to GitHub and you're done.</li>
+          </ol>
+          <br>
+          <strong>Security:</strong> Your token is encrypted with AES-256-GCM using your name+password as the key. Even with the full source code, the token cannot be recovered without your exact password.
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+<!-- ════════════════════════════════════════════════════════════════ -->
+
+
+<!-- ══ GALLERY PAGE ═════════════════════════════════════════════════ -->
+<header>
+  <!-- Subtle top auth bar -->
+  <div class="top-auth">
+    <!-- Logged-out state -->
+    <div class="auth-form" id="authForm">
+      <div class="attempt-dots" id="attemptDots"></div>
+      <span class="auth-error" id="authError"></span>
+      <span class="auth-loading" id="authLoading">VERIFYING…</span>
+      <span class="lockout-text" id="lockoutText"></span>
+      <input class="auth-input" type="text"     id="authName" placeholder="Name"     autocomplete="off"       onkeydown="if(event.key==='Enter')document.getElementById('authPass').focus()" />
+      <input class="auth-input" type="password" id="authPass" placeholder="Password" autocomplete="off"       onkeydown="if(event.key==='Enter')doLogin()" />
+      <button class="auth-submit" onclick="doLogin()" title="Login">→</button>
+    </div>
+    <!-- Logged-in state -->
+    <div class="auth-status" id="authStatus">
+      <span class="dot"></span>
+      <span id="authStatusName">ADMIN MODE</span>
+      <button class="logout-link" onclick="doLogout()">LOG OUT</button>
+    </div>
+  </div>
+
+  <div class="header-main">
+    <div class="header-left">
+      <h1>MY<br>GALLERY</h1>
+      <p>I approach each project with care and creativity, balancing experimentation with clear communication to turn ideas into strong visual systems.</p>
+    </div>
+    <button class="add-btn" id="addBtn" onclick="openModal()">+ ADD IMAGE</button>
+  </div>
+</header>
+
+<div class="filter-bar" id="filterBar">
+  <span class="filter-label-title">FILTER:</span>
+  <button class="manage-labels-btn" id="manageLabelsBtn" onclick="openLabelManager()">⚙ MANAGE LABELS</button>
+</div>
+
+<main>
+  <div class="gallery-count" id="galleryCount"></div>
+  <div class="gallery-grid" id="galleryGrid">
+    <div class="empty-state"><h2>LOADING</h2><p>Fetching gallery data…</p></div>
+  </div>
+</main>
+
+
+<!-- ADD IMAGE MODAL -->
+<div class="modal-overlay" id="modal" onclick="if(event.target.id==='modal')closeModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>ADD NEW IMAGE</h2>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Image URL (recommended)</label>
+        <input type="url" id="imgUrl" placeholder="https://…" oninput="handleUrlInput(this.value)" />
+        <img class="img-preview" id="imgPreview" src="" alt="preview" />
+      </div>
+      <div class="form-group">
+        <label>Or Upload File <small style="font-weight:700;opacity:.5;font-size:11px">(stored as base64 — keep under 500KB)</small></label>
+        <div class="upload-zone" id="uploadZone">
+          <input type="file" accept="image/*" onchange="handleFileUpload(event)" />
+          <span class="upload-zone-icon">📷</span>
+          <p><strong>Click to upload</strong> or drag & drop</p>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Title</label>
+        <input type="text" id="imgTitle" placeholder="e.g. Project Gimsel" />
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <textarea id="imgDesc" placeholder="A short description…"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Labels — press Enter or comma to add</label>
+        <div class="tag-input-wrapper" id="tagWrapper" onclick="document.getElementById('tag-text-input').focus()">
+          <input id="tag-text-input" placeholder="Type a label…" onkeydown="handleTagInput(event)" oninput="showTagSuggestions(this.value)" />
+        </div>
+        <div id="tagSuggestions"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal()">CANCEL</button>
+      <button class="btn-save" id="saveImgBtn" onclick="saveImage()">SAVE IMAGE</button>
+    </div>
+  </div>
+</div>
+
+<!-- LABEL MANAGER -->
+<div class="modal-overlay" id="labelModal" onclick="if(event.target.id==='labelModal')closeLabelManager()">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-header">
+      <h2>MANAGE LABELS</h2>
+      <button class="modal-close" onclick="closeLabelManager()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Add New Label</label>
+        <input type="text" id="newLabelName" placeholder="Label name…" onkeydown="if(event.key==='Enter')addLabel()" />
+      </div>
+      <button class="btn-save" style="width:100%;text-align:center" onclick="addLabel()">+ ADD LABEL</button>
+      <div class="form-group" style="margin-top:4px">
+        <label>Current Labels — click × to delete</label>
+        <div id="existingLabelsList"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-save" onclick="closeLabelManager()">DONE</button>
+    </div>
+  </div>
+</div>
+
+<!-- LIGHTBOX -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <button class="lightbox-close" onclick="closeLightbox()">CLOSE ✕</button>
+  <img id="lightboxImg" src="" alt="" onclick="event.stopPropagation()" />
+  <div class="lightbox-info">
+    <div class="lightbox-title" id="lightboxTitle"></div>
+    <div class="lightbox-desc"  id="lightboxDesc"></div>
+    <div class="lightbox-tags"  id="lightboxTags"></div>
+  </div>
+</div>
+
+
+<script>
+// ════════════════════════════════════════════════════════════════════
+//  CRYPTO — AES-256-GCM with PBKDF2 key derivation
+//  The password never touches the server or gets stored anywhere.
+//  100,000 PBKDF2 iterations makes brute-force astronomically slow.
+// ════════════════════════════════════════════════════════════════════
+
+async function deriveKey(password, salt) {
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveKey']
+  );
+  return crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' },
+    keyMaterial,
+    { name: 'AES-GCM', length: 256 },
+    false, ['encrypt', 'decrypt']
+  );
+}
+
+async function encryptText(plaintext, password) {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const iv   = crypto.getRandomValues(new Uint8Array(12));
+  const key  = await deriveKey(password, salt);
+  const enc  = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, new TextEncoder().encode(plaintext));
+  const out  = new Uint8Array(16 + 12 + enc.byteLength);
+  out.set(salt, 0); out.set(iv, 16); out.set(new Uint8Array(enc), 28);
+  return btoa(String.fromCharCode(...out));
+}
+
+async function decryptText(cipherB64, password) {
+  try {
+    const buf  = Uint8Array.from(atob(cipherB64), c => c.charCodeAt(0));
+    const salt = buf.slice(0, 16);
+    const iv   = buf.slice(16, 28);
+    const data = buf.slice(28);
+    const key  = await deriveKey(password, salt);
+    const dec  = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, data);
+    return new TextDecoder().decode(dec);
+  } catch { return null; }
+}
+
+// ══ SETUP PAGE ═══════════════════════════════════════════════════════
+if (new URLSearchParams(location.search).has('setup')) {
+  document.getElementById('setupPage').classList.add('open');
+}
+
+async function runSetup() {
+  const token = document.getElementById('s-token').value.trim();
+  const name  = document.getElementById('s-name').value.trim();
+  const pass  = document.getElementById('s-pass').value;
+  if (!token || !name || !pass) { alert('Fill in all three fields.'); return; }
+  const encryptedToken = await encryptText(token, name + ':' + pass);
+  document.getElementById('s-out-token').textContent = encryptedToken;
+  document.getElementById('setupResult').style.display = 'flex';
+}
+
+function copyEl(id) {
+  const text = document.getElementById(id).textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = event.target; btn.textContent = 'COPIED ✓';
+    setTimeout(() => btn.textContent = 'COPY', 1500);
+  });
+}
+
+// ══ STATE ════════════════════════════════════════════════════════════
+let images        = [];
+let labels        = ['Design','Photo','Motion','Branding'];
+let adminMode     = false;
+let githubToken   = null;      // decrypted token, memory-only
+let fileSHA       = null;      // current SHA of gallery-data.json on GitHub
+let currentFilter = 'all';
+let currentTags   = [];
+let currentFile   = null;
+
+// Rate limiting
+const MAX_ATTEMPTS = 5;
+const LOCKOUT_SECS = 30;
+let failedAttempts = 0;
+let lockedUntil    = 0;
+let lockoutTick    = null;
+
+// ══ GITHUB API ════════════════════════════════════════════════════════
+const API = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${DATA_FILE}`;
+
+async function loadFromGitHub() {
+  try {
+    const res  = await fetch(API + '?t=' + Date.now()); // bust cache
+    if (!res.ok) throw new Error('Not found');
+    const json = await res.json();
+    fileSHA = json.sha;
+    const data = JSON.parse(atob(json.content.replace(/\n/g,'')));
+    images = data.images || [];
+    labels = data.labels || labels;
+  } catch (e) {
+    // File might not exist yet — that's fine, start empty
+    console.warn('gallery-data.json not found or unreadable:', e.message);
+  }
+  renderFilters(); render();
+}
+
+async function saveToGitHub() {
+  if (!githubToken) return false;
+  const content = btoa(unescape(encodeURIComponent(JSON.stringify({ images, labels }, null, 2))));
+  const body    = { message: 'Update gallery data', content, ...(fileSHA ? { sha: fileSHA } : {}) };
+  const res = await fetch(API, {
+    method: 'PUT',
+    headers: { Authorization: `Bearer ${githubToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) { const e = await res.json(); console.error('GitHub save failed:', e); return false; }
+  const json = await res.json();
+  fileSHA = json.content.sha; // update SHA for next save
+  return true;
+}
+
+// ══ AUTH ══════════════════════════════════════════════════════════════
+function renderDots() {
+  const c = document.getElementById('attemptDots'); c.innerHTML = '';
+  for (let i = 0; i < MAX_ATTEMPTS; i++) {
+    const d = document.createElement('div');
+    d.className = 'attempt-dot' + (i < failedAttempts ? ' used' : '');
+    c.appendChild(d);
+  }
+}
+
+async function doLogin() {
+  if (Date.now() < lockedUntil) return;
+  if (!ENCRYPTED_TOKEN) {
+    showAuthError('Run ?setup first to configure your credentials.');
+    return;
+  }
+
+  const name = document.getElementById('authName').value;
+  const pass = document.getElementById('authPass').value;
+  if (!name || !pass) { showAuthError('Enter both fields.'); return; }
+
+  setAuthLoading(true);
+
+  const token = await decryptText(ENCRYPTED_TOKEN, name + ':' + pass);
+
+  setAuthLoading(false);
+
+  if (token && token.startsWith('github_pat_') || token && token.startsWith('ghp_') || (token && token.length > 20)) {
+    // Success
+    githubToken    = token;
+    adminMode      = true;
+    failedAttempts = 0;
+    applyAdminUI(name);
+  } else {
+    // Failed
+    failedAttempts++;
+    renderDots();
+    if (failedAttempts >= MAX_ATTEMPTS) {
+      lockedUntil = Date.now() + LOCKOUT_SECS * 1000;
+      startLockoutCountdown();
+    } else {
+      const left = MAX_ATTEMPTS - failedAttempts;
+      showAuthError(`Incorrect. ${left} attempt${left !== 1 ? 's' : ''} left.`);
+    }
+    document.getElementById('authPass').value = '';
+  }
+}
+
+function startLockoutCountdown() {
+  const el = document.getElementById('lockoutText');
+  const errEl = document.getElementById('authError');
+  errEl.style.display = 'none';
+  document.getElementById('authName').disabled = true;
+  document.getElementById('authPass').disabled = true;
+  lockoutTick = setInterval(() => {
+    const left = Math.ceil((lockedUntil - Date.now()) / 1000);
+    el.style.display = 'inline';
+    el.textContent = `Locked ${left}s`;
+    if (left <= 0) {
+      clearInterval(lockoutTick); lockoutTick = null;
+      failedAttempts = 0;
+      el.style.display = 'none';
+      document.getElementById('authName').disabled = false;
+      document.getElementById('authPass').disabled = false;
+      renderDots();
+    }
+  }, 500);
+}
+
+function showAuthError(msg) {
+  const el = document.getElementById('authError');
+  el.textContent = msg; el.style.display = 'inline';
+  setTimeout(() => { if (el.textContent === msg) el.style.display = 'none'; }, 3000);
+}
+
+function setAuthLoading(on) {
+  document.getElementById('authLoading').style.display = on ? 'inline' : 'none';
+  document.getElementById('authError').style.display   = 'none';
+}
+
+function doLogout() {
+  adminMode = false; githubToken = null;
+  document.getElementById('authName').value = '';
+  document.getElementById('authPass').value = '';
+  applyAdminUI(null);
+}
+
+function applyAdminUI(name) {
+  const loggedIn = adminMode;
+  document.getElementById('authForm').style.display       = loggedIn ? 'none'  : 'flex';
+  document.getElementById('authStatus').style.display     = loggedIn ? 'flex'  : 'none';
+  document.getElementById('addBtn').style.display         = loggedIn ? 'block' : 'none';
+  document.getElementById('manageLabelsBtn').style.display= loggedIn ? 'block' : 'none';
+  if (name) document.getElementById('authStatusName').textContent = name.toUpperCase();
+  document.querySelectorAll('.delete-btn').forEach(b => b.style.display = loggedIn ? 'block' : 'none');
+  renderDots();
+}
+
+// ══ RENDER ════════════════════════════════════════════════════════════
+function render() {
+  const grid = document.getElementById('galleryGrid');
+  const filtered = currentFilter === 'all'
+    ? images
+    : images.filter(img => (img.tags||[]).map(t=>t.toLowerCase()).includes(currentFilter.toLowerCase()));
+
+  document.getElementById('galleryCount').textContent = `${filtered.length} IMAGE${filtered.length!==1?'S':''}`;
+  grid.innerHTML = '';
+
+  if (!filtered.length) {
+    grid.innerHTML = `<div class="empty-state"><h2>NO IMAGES</h2><p>${
+      currentFilter==='all'
+        ? (adminMode ? 'Hit "+ ADD IMAGE" to get started.' : 'No images have been added yet.')
+        : `No images labelled "${currentFilter}".`
+    }</p></div>`;
+    return;
+  }
+
+  filtered.forEach(img => {
+    const realIdx = images.indexOf(img);
+    const tagsHtml = (img.tags||[]).map(t=>`<span class="item-tag">${t}</span>`).join('');
+    const el = document.createElement('div');
+    el.className = 'gallery-item';
+    el.innerHTML = `
+      <img src="${img.src}" alt="${img.title||''}" loading="lazy" onclick="openLightbox(${realIdx})" />
+      <div class="gallery-item-info">
+        ${tagsHtml?`<div class="gallery-item-tags">${tagsHtml}</div>`:''}
+        ${img.title?`<div class="gallery-item-title">${img.title}</div>`:''}
+        ${img.desc ?`<div class="gallery-item-desc">${img.desc}</div>` :''}
+      </div>
+      <button class="delete-btn" style="display:${adminMode?'block':'none'}" onclick="deleteImage(${realIdx},event)">✕ REMOVE</button>
+    `;
+    grid.appendChild(el);
+  });
+}
+
+function renderFilters() {
+  const bar = document.getElementById('filterBar');
+  bar.querySelectorAll('.tag-pill').forEach(p=>p.remove());
+  const manageBtn = document.getElementById('manageLabelsBtn');
+  function makeBtn(text, key) {
+    const btn = document.createElement('button');
+    btn.className = 'tag-pill'+(currentFilter===key?' active':'');
+    btn.textContent = text;
+    btn.onclick = () => { currentFilter=key; renderFilters(); render(); };
+    bar.insertBefore(btn, manageBtn);
+  }
+  makeBtn('ALL','all');
+  labels.forEach(l => makeBtn(l.toUpperCase(), l));
+}
+
+// ══ ADD IMAGE ═════════════════════════════════════════════════════════
+function openModal() {
+  currentTags=[]; currentFile=null;
+  ['imgUrl','imgTitle','imgDesc'].forEach(id=>document.getElementById(id).value='');
+  const p=document.getElementById('imgPreview'); p.style.display='none'; p.src='';
+  renderTagChips();
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal() { document.getElementById('modal').classList.remove('open'); }
+
+function handleFileUpload(e) {
+  const file=e.target.files[0]; if(!file) return;
+  if (file.size > 600000) { alert('File is over 600KB. Please use an image URL instead for better performance.'); return; }
+  const r=new FileReader();
+  r.onload=ev=>{
+    currentFile=ev.target.result;
+    const p=document.getElementById('imgPreview'); p.src=currentFile; p.style.display='block';
+    document.getElementById('imgUrl').value='';
+  };
+  r.readAsDataURL(file);
+}
+function handleUrlInput(val) {
+  if(!val) return; currentFile=null;
+  const p=document.getElementById('imgPreview'); p.src=val; p.style.display='block';
+}
+
+// Tags
+function renderTagChips() {
+  const wrapper=document.getElementById('tagWrapper'), input=document.getElementById('tag-text-input');
+  wrapper.querySelectorAll('.tag-chip').forEach(c=>c.remove());
+  currentTags.forEach((tag,i)=>{
+    const chip=document.createElement('span'); chip.className='tag-chip';
+    chip.innerHTML=`${tag} <button class="remove-tag" onclick="removeTag(${i})">×</button>`;
+    wrapper.insertBefore(chip,input);
+  });
+}
+function addTag(name) {
+  name=name.trim(); if(!name||currentTags.includes(name)) return;
+  currentTags.push(name);
+  if(!labels.find(l=>l.toLowerCase()===name.toLowerCase())) { labels.push(name); renderFilters(); }
+  renderTagChips();
+}
+function removeTag(i) { currentTags.splice(i,1); renderTagChips(); }
+function handleTagInput(e) {
+  if(e.key==='Enter'||e.key===','){e.preventDefault();addTag(e.target.value.replace(',','').trim());e.target.value='';hideSuggestions();}
+  else if(e.key==='Backspace'&&!e.target.value&&currentTags.length){currentTags.pop();renderTagChips();}
+}
+function showTagSuggestions(val) {
+  const box=document.getElementById('tagSuggestions');
+  if(!val.trim()){hideSuggestions();return;}
+  const matches=labels.filter(l=>l.toLowerCase().startsWith(val.toLowerCase())&&!currentTags.includes(l));
+  if(!matches.length){hideSuggestions();return;}
+  box.style.display='block';
+  box.innerHTML=matches.map(l=>`<div class="suggestion-row" onmousedown="addTag('${l}');document.getElementById('tag-text-input').value='';hideSuggestions()">${l}</div>`).join('');
+}
+function hideSuggestions() { document.getElementById('tagSuggestions').style.display='none'; }
+
+async function saveImage() {
+  const extra=document.getElementById('tag-text-input').value.trim(); if(extra) addTag(extra);
+  const src=currentFile||document.getElementById('imgUrl').value.trim();
+  const title=document.getElementById('imgTitle').value.trim();
+  const desc=document.getElementById('imgDesc').value.trim();
+  if(!src){alert('Please provide an image URL or upload a file.');return;}
+
+  const btn=document.getElementById('saveImgBtn');
+  btn.textContent='SAVING…'; btn.disabled=true;
+
+  images.unshift({src,title,desc,tags:[...currentTags]});
+  const ok = await saveToGitHub();
+  btn.textContent='SAVE IMAGE'; btn.disabled=false;
+
+  if (ok) { renderFilters(); render(); closeModal(); }
+  else { images.shift(); alert('Failed to save to GitHub. Check your token and repo settings.'); }
+}
+
+// Delete
+async function deleteImage(idx,e) {
+  e.stopPropagation(); if(!adminMode) return;
+  if(!confirm('Remove this image?')) return;
+  images.splice(idx,1);
+  const ok = await saveToGitHub();
+  if (ok) render();
+  else { await loadFromGitHub(); alert('Delete failed — data reloaded.'); }
+}
+
+// ══ LIGHTBOX ══════════════════════════════════════════════════════════
+function openLightbox(idx) {
+  const img=images[idx];
+  document.getElementById('lightboxImg').src=img.src;
+  document.getElementById('lightboxTitle').textContent=img.title||'';
+  document.getElementById('lightboxDesc').textContent=img.desc||'';
+  document.getElementById('lightboxTags').innerHTML=(img.tags||[]).map(t=>`<span class="item-tag">${t}</span>`).join('');
+  document.getElementById('lightbox').classList.add('open');
+}
+function closeLightbox() { document.getElementById('lightbox').classList.remove('open'); }
+
+// ══ LABEL MANAGER ════════════════════════════════════════════════════
+function openLabelManager() { renderExistingLabels(); document.getElementById('labelModal').classList.add('open'); }
+async function closeLabelManager() {
+  document.getElementById('labelModal').classList.remove('open');
+  renderFilters(); render();
+  await saveToGitHub();
+}
+function addLabel() {
+  const name=document.getElementById('newLabelName').value.trim(); if(!name) return;
+  if(labels.find(l=>l.toLowerCase()===name.toLowerCase())){alert('Label already exists.');return;}
+  labels.push(name); document.getElementById('newLabelName').value='';
+  renderExistingLabels(); renderFilters();
+}
+function removeLabel(idx) {
+  const name=labels[idx];
+  if(!confirm(`Delete label "${name}"?`)) return;
+  labels.splice(idx,1);
+  images.forEach(img=>{if(img.tags)img.tags=img.tags.filter(t=>t!==name);});
+  renderExistingLabels(); renderFilters(); render();
+}
+function renderExistingLabels() {
+  document.getElementById('existingLabelsList').innerHTML=labels.length
+    ? labels.map((l,i)=>`<span class="tag-chip">${l}<button class="remove-tag" onclick="removeLabel(${i})">×</button></span>`).join('')
+    : '<span style="font-family:\'Barlow Condensed\',sans-serif;font-weight:700;color:#999;font-size:14px">No labels yet.</span>';
+}
+
+// ══ DRAG & DROP ═══════════════════════════════════════════════════════
+const uz=document.getElementById('uploadZone');
+uz.addEventListener('dragover', e=>{e.preventDefault();uz.classList.add('drag-over');});
+uz.addEventListener('dragleave',()=>uz.classList.remove('drag-over'));
+uz.addEventListener('drop',e=>{
+  e.preventDefault();uz.classList.remove('drag-over');
+  const file=e.dataTransfer.files[0];
+  if(file&&file.type.startsWith('image/')){
+    if(file.size>600000){alert('File too large. Use a URL instead.');return;}
+    const r=new FileReader(); r.onload=ev=>{currentFile=ev.target.result;const p=document.getElementById('imgPreview');p.src=currentFile;p.style.display='block';};r.readAsDataURL(file);
+  }
+});
+
+// ══ KEYBOARD ══════════════════════════════════════════════════════════
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){closeLightbox();closeModal();document.getElementById('labelModal').classList.remove('open');}
+});
+
+// ══ INIT ══════════════════════════════════════════════════════════════
+renderDots();
+loadFromGitHub();
+</script>
+</body>
+</html>
