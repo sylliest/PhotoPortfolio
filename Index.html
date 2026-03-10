@@ -1,0 +1,1034 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Photo Gallery</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@700;800&family=Barlow+Condensed:wght@700;800;900&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --navy: #0B0B5C;
+    --navy-dark: #07073D;
+    --cream: #F4F0E6;
+    --blue: #1A1AE0;
+    --blue-bright: #2525F5;
+    --orange: #F5871A;
+    --white: #FAFAFA;
+    --text-dark: #0B0B5C;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--navy);
+    font-family: 'Barlow', sans-serif;
+    min-height: 100vh;
+    color: var(--cream);
+    overflow-x: hidden;
+  }
+
+  /* Diagonal stripe texture on body */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: repeating-linear-gradient(
+      -55deg,
+      transparent,
+      transparent 18px,
+      rgba(255,255,255,0.025) 18px,
+      rgba(255,255,255,0.025) 20px
+    );
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── HEADER ── */
+  header {
+    position: relative;
+    z-index: 10;
+    background: var(--cream);
+    padding: 48px 60px 40px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 32px;
+    flex-wrap: wrap;
+  }
+
+  .header-left h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(64px, 10vw, 120px);
+    line-height: 0.9;
+    color: var(--blue);
+    letter-spacing: 2px;
+  }
+
+  .header-left p {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--navy);
+    max-width: 400px;
+    margin-top: 14px;
+    line-height: 1.5;
+  }
+
+  .add-btn {
+    background: var(--blue);
+    color: #fff;
+    border: none;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 26px;
+    letter-spacing: 2px;
+    padding: 14px 36px;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.12s;
+    flex-shrink: 0;
+    clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
+  }
+
+  .add-btn:hover {
+    background: var(--navy);
+    transform: translateY(-2px);
+  }
+
+  /* ── FILTER BAR ── */
+  .filter-bar {
+    position: relative;
+    z-index: 10;
+    background: var(--navy-dark);
+    padding: 20px 60px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    border-top: 4px solid var(--blue);
+    border-bottom: 4px solid var(--blue);
+  }
+
+  .filter-label-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    color: var(--cream);
+    opacity: 0.5;
+    letter-spacing: 2px;
+    margin-right: 8px;
+    flex-shrink: 0;
+  }
+
+  .tag-pill {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 14px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 6px 18px;
+    border: 2.5px solid rgba(255,255,255,0.2);
+    background: transparent;
+    color: var(--cream);
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.15s;
+  }
+
+  .tag-pill:hover, .tag-pill.active {
+    background: var(--blue-bright);
+    border-color: var(--blue-bright);
+    color: #fff;
+    transform: translateY(-1px);
+  }
+
+  /* ── GALLERY GRID ── */
+  main {
+    position: relative;
+    z-index: 10;
+    padding: 48px 60px;
+  }
+
+  .gallery-count {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    color: rgba(255,255,255,0.3);
+    letter-spacing: 3px;
+    margin-bottom: 28px;
+  }
+
+  .gallery-grid {
+    columns: 3 320px;
+    column-gap: 20px;
+  }
+
+  .gallery-item {
+    background: var(--cream);
+    break-inside: avoid;
+    margin-bottom: 20px;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .gallery-item:hover {
+    transform: translateY(-4px) rotate(-0.5deg);
+    box-shadow: 8px 8px 0 var(--blue-bright);
+    z-index: 2;
+  }
+
+  .gallery-item img {
+    display: block;
+    width: 100%;
+    object-fit: cover;
+    aspect-ratio: auto;
+  }
+
+  .gallery-item-info {
+    padding: 16px 18px 20px;
+    background: var(--cream);
+  }
+
+  .gallery-item-tags {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+  }
+
+  .item-tag {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 1px;
+    color: #fff;
+  }
+
+  .gallery-item-desc {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--navy);
+    line-height: 1.4;
+  }
+
+  .gallery-item-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    color: var(--blue);
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+
+  .delete-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(10,10,80,0.85);
+    color: #fff;
+    border: none;
+    font-size: 12px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    letter-spacing: 1px;
+    padding: 4px 9px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s;
+    border-radius: 1px;
+  }
+  .gallery-item:hover .delete-btn { opacity: 1; }
+
+  .empty-state {
+    text-align: center;
+    padding: 80px 20px;
+    color: rgba(255,255,255,0.2);
+  }
+  .empty-state h2 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 64px;
+    letter-spacing: 3px;
+    margin-bottom: 12px;
+  }
+  .empty-state p {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 18px;
+    letter-spacing: 1px;
+  }
+
+  /* ── MODAL ── */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(7,7,61,0.92);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    backdrop-filter: blur(4px);
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--cream);
+    width: 100%;
+    max-width: 560px;
+    position: relative;
+    animation: slideUp 0.25s ease;
+  }
+
+  @keyframes slideUp {
+    from { transform: translateY(30px); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+  }
+
+  .modal-header {
+    background: var(--blue);
+    padding: 20px 28px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .modal-header h2 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 36px;
+    color: #fff;
+    letter-spacing: 2px;
+  }
+
+  .modal-close {
+    background: none;
+    border: 2px solid rgba(255,255,255,0.4);
+    color: #fff;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    width: 36px;
+    height: 36px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: border-color 0.15s;
+  }
+  .modal-close:hover { border-color: #fff; }
+
+  .modal-body {
+    padding: 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .form-group label {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 13px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--navy);
+  }
+
+  .form-group input,
+  .form-group textarea,
+  .form-group select {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--navy);
+    border: 2.5px solid var(--navy);
+    background: #fff;
+    padding: 10px 14px;
+    outline: none;
+    transition: border-color 0.15s;
+    border-radius: 0;
+    appearance: none;
+    width: 100%;
+  }
+  .form-group input:focus,
+  .form-group textarea:focus,
+  .form-group select:focus {
+    border-color: var(--blue-bright);
+  }
+
+  .form-group textarea { resize: vertical; min-height: 80px; }
+
+  /* Image preview in modal */
+  .img-preview {
+    width: 100%;
+    max-height: 180px;
+    object-fit: cover;
+    display: none;
+    border: 2px solid var(--navy);
+    margin-top: 8px;
+  }
+
+  /* Tag input */
+  .tag-input-wrapper {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    border: 2.5px solid var(--navy);
+    background: #fff;
+    padding: 8px 10px;
+    min-height: 48px;
+    align-items: center;
+    cursor: text;
+  }
+
+  .tag-chip {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 13px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    color: #fff;
+    border-radius: 1px;
+  }
+
+  .tag-chip .remove-tag {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.7);
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    padding: 0;
+  }
+
+  #tag-text-input {
+    border: none;
+    outline: none;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--navy);
+    background: transparent;
+    flex: 1;
+    min-width: 80px;
+  }
+
+  .modal-footer {
+    padding: 0 28px 28px;
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+  }
+
+  .btn-cancel {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 1.5px;
+    padding: 10px 28px;
+    background: transparent;
+    border: 2.5px solid var(--navy);
+    color: var(--navy);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-cancel:hover { background: var(--navy); color: #fff; }
+
+  .btn-save {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 1.5px;
+    padding: 10px 36px;
+    background: var(--blue);
+    border: 2.5px solid var(--blue);
+    color: #fff;
+    cursor: pointer;
+    transition: all 0.15s;
+    clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%);
+  }
+  .btn-save:hover { background: var(--navy); border-color: var(--navy); }
+
+  /* ── LIGHTBOX ── */
+  .lightbox {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(7,7,61,0.96);
+    z-index: 2000;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 20px;
+    padding: 30px;
+  }
+  .lightbox.open { display: flex; }
+
+  .lightbox img {
+    max-width: 90vw;
+    max-height: 70vh;
+    object-fit: contain;
+    border: 4px solid var(--cream);
+    box-shadow: 0 0 60px rgba(26,26,224,0.4);
+    animation: zoomIn 0.2s ease;
+  }
+
+  @keyframes zoomIn {
+    from { transform: scale(0.9); opacity: 0; }
+    to   { transform: scale(1);   opacity: 1; }
+  }
+
+  .lightbox-info {
+    text-align: center;
+    max-width: 600px;
+  }
+
+  .lightbox-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 36px;
+    color: var(--cream);
+    letter-spacing: 2px;
+  }
+
+  .lightbox-desc {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    color: rgba(255,255,255,0.6);
+    margin-top: 6px;
+  }
+
+  .lightbox-tags { display: flex; gap: 8px; justify-content: center; margin-top: 10px; flex-wrap: wrap; }
+
+  .lightbox-close {
+    position: fixed;
+    top: 20px;
+    right: 24px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    color: var(--cream);
+    background: none;
+    border: 2px solid rgba(255,255,255,0.3);
+    padding: 4px 14px;
+    cursor: pointer;
+    letter-spacing: 2px;
+    transition: border-color 0.15s;
+  }
+  .lightbox-close:hover { border-color: #fff; }
+
+  /* ── FILE UPLOAD ── */
+  .upload-zone {
+    border: 3px dashed var(--navy);
+    background: #fff;
+    text-align: center;
+    padding: 24px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    position: relative;
+  }
+  .upload-zone:hover, .upload-zone.drag-over {
+    border-color: var(--blue-bright);
+    background: #f0f0ff;
+  }
+  .upload-zone input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+  }
+  .upload-zone-icon {
+    font-size: 32px;
+    margin-bottom: 6px;
+    display: block;
+  }
+  .upload-zone p {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--navy);
+    letter-spacing: 1px;
+  }
+  .upload-zone p strong {
+    color: var(--blue);
+  }
+
+  /* ── MANAGE LABELS ── */
+  .manage-labels-btn {
+    background: none;
+    border: 2px solid rgba(255,255,255,0.2);
+    color: rgba(255,255,255,0.5);
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 5px 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+  .manage-labels-btn:hover { border-color: rgba(255,255,255,0.5); color: #fff; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--navy-dark); }
+  ::-webkit-scrollbar-thumb { background: var(--blue); border-radius: 3px; }
+
+  @media (max-width: 700px) {
+    header, .filter-bar, main { padding-left: 20px; padding-right: 20px; }
+    .gallery-grid { columns: 1; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="header-left">
+    <h1>MY<br>GALLERY</h1>
+    <p>I approach each project with care and creativity, balancing experimentation with clear communication to turn ideas into strong visual systems.</p>
+  </div>
+  <button class="add-btn" onclick="openModal()">+ ADD IMAGE</button>
+</header>
+
+<!-- FILTER BAR -->
+<div class="filter-bar" id="filterBar">
+  <span class="filter-label-title">FILTER:</span>
+  <button class="tag-pill active" data-filter="all" onclick="setFilter('all', this)">ALL</button>
+  <button class="manage-labels-btn" onclick="openLabelManager()">MANAGE LABELS ⚙</button>
+</div>
+
+<!-- MAIN GALLERY -->
+<main>
+  <div class="gallery-count" id="galleryCount">0 IMAGES</div>
+  <div class="gallery-grid" id="galleryGrid">
+    <div class="empty-state" id="emptyState">
+      <h2>NO IMAGES YET</h2>
+      <p>Hit "ADD IMAGE" to populate your gallery.</p>
+    </div>
+  </div>
+</main>
+
+<!-- ADD IMAGE MODAL -->
+<div class="modal-overlay" id="modal" onclick="handleOverlayClick(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>ADD NEW IMAGE</h2>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <!-- File or URL -->
+      <div class="form-group">
+        <label>Image — Upload File</label>
+        <div class="upload-zone" id="uploadZone">
+          <input type="file" accept="image/*" onchange="handleFileUpload(event)" />
+          <span class="upload-zone-icon">📷</span>
+          <p><strong>Click to upload</strong> or drag & drop</p>
+        </div>
+        <img class="img-preview" id="imgPreview" src="" alt="preview" />
+      </div>
+
+      <div class="form-group">
+        <label>Or paste Image URL</label>
+        <input type="url" id="imgUrl" placeholder="https://..." oninput="handleUrlInput(this.value)" />
+      </div>
+
+      <div class="form-group">
+        <label>Title</label>
+        <input type="text" id="imgTitle" placeholder="e.g. Project Gimsel" />
+      </div>
+
+      <div class="form-group">
+        <label>Description</label>
+        <textarea id="imgDesc" placeholder="A short description of this image..."></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>Labels (press Enter or comma to add)</label>
+        <div class="tag-input-wrapper" id="tagWrapper" onclick="document.getElementById('tag-text-input').focus()">
+          <input id="tag-text-input" placeholder="e.g. Design" onkeydown="handleTagInput(event)" oninput="showTagSuggestions(this.value)" />
+        </div>
+        <div id="tagSuggestions" style="display:none; background:#fff; border:2px solid var(--navy); border-top:none; max-height:120px; overflow-y:auto;"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal()">CANCEL</button>
+      <button class="btn-save" onclick="saveImage()">SAVE IMAGE</button>
+    </div>
+  </div>
+</div>
+
+<!-- LABEL MANAGER MODAL -->
+<div class="modal-overlay" id="labelModal" onclick="handleLabelOverlayClick(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>MANAGE LABELS</h2>
+      <button class="modal-close" onclick="closeLabelManager()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Add New Label</label>
+        <div style="display:flex;gap:10px">
+          <input type="text" id="newLabelName" placeholder="Label name..." style="flex:1" onkeydown="if(event.key==='Enter') addLabel()" />
+          <input type="color" id="newLabelColor" value="#1A1AE0" style="width:50px;padding:4px;border:2.5px solid var(--navy);cursor:pointer;background:#fff" />
+        </div>
+      </div>
+      <button class="btn-save" style="width:100%;text-align:center;margin-top:4px" onclick="addLabel()">ADD LABEL</button>
+      <div class="form-group" style="margin-top:8px">
+        <label>Existing Labels</label>
+        <div id="existingLabelsList" style="display:flex;flex-wrap:wrap;gap:8px;min-height:40px"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-save" onclick="closeLabelManager()">DONE</button>
+    </div>
+  </div>
+</div>
+
+<!-- LIGHTBOX -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <button class="lightbox-close" onclick="closeLightbox()">CLOSE ✕</button>
+  <img id="lightboxImg" src="" alt="" onclick="event.stopPropagation()" />
+  <div class="lightbox-info">
+    <div class="lightbox-title" id="lightboxTitle"></div>
+    <div class="lightbox-desc" id="lightboxDesc"></div>
+    <div class="lightbox-tags" id="lightboxTags"></div>
+  </div>
+</div>
+
+<script>
+// ── STATE ──
+let images = JSON.parse(localStorage.getItem('gallery_images') || '[]');
+let labels = JSON.parse(localStorage.getItem('gallery_labels') || JSON.stringify([
+  { name: 'Design',    color: '#1A1AE0' },
+  { name: 'Photo',     color: '#C44A1A' },
+  { name: 'Motion',    color: '#1A8C3C' },
+  { name: 'Branding',  color: '#7A1AC4' },
+]));
+let currentFilter = 'all';
+let currentTags   = [];
+let currentFile   = null; // base64
+
+function save() {
+  localStorage.setItem('gallery_images', JSON.stringify(images));
+  localStorage.setItem('gallery_labels', JSON.stringify(labels));
+}
+
+// ── COLOUR HELPERS ──
+function labelColor(name) {
+  const l = labels.find(l => l.name.toLowerCase() === name.toLowerCase());
+  return l ? l.color : '#555';
+}
+
+// ── RENDER ──
+function render() {
+  const grid  = document.getElementById('galleryGrid');
+  const empty = document.getElementById('emptyState');
+  const count = document.getElementById('galleryCount');
+
+  let filtered = currentFilter === 'all'
+    ? images
+    : images.filter(img => img.tags && img.tags.map(t=>t.toLowerCase()).includes(currentFilter.toLowerCase()));
+
+  count.textContent = `${filtered.length} IMAGE${filtered.length !== 1 ? 'S' : ''}`;
+
+  // Clear except empty state (we'll re-add it)
+  grid.innerHTML = '';
+
+  if (filtered.length === 0) {
+    grid.innerHTML = `<div class="empty-state"><h2>NO IMAGES</h2><p>${currentFilter === 'all' ? 'Hit "ADD IMAGE" to get started.' : `No images labelled "${currentFilter}" yet.`}</p></div>`;
+    return;
+  }
+
+  filtered.forEach((img, idx) => {
+    const realIdx = images.indexOf(img);
+    const tagsHtml = (img.tags || []).map(t =>
+      `<span class="item-tag" style="background:${labelColor(t)}">${t}</span>`
+    ).join('');
+
+    const el = document.createElement('div');
+    el.className = 'gallery-item';
+    el.innerHTML = `
+      <img src="${img.src}" alt="${img.title || ''}" loading="lazy" onclick="openLightbox(${realIdx})" />
+      <div class="gallery-item-info">
+        ${tagsHtml ? `<div class="gallery-item-tags">${tagsHtml}</div>` : ''}
+        ${img.title ? `<div class="gallery-item-title">${img.title}</div>` : ''}
+        ${img.desc  ? `<div class="gallery-item-desc">${img.desc}</div>` : ''}
+      </div>
+      <button class="delete-btn" onclick="deleteImage(${realIdx},event)">✕ REMOVE</button>
+    `;
+    grid.appendChild(el);
+  });
+}
+
+function renderFilters() {
+  const bar = document.getElementById('filterBar');
+  // Remove existing pills (keep first and last children: title + manage btn)
+  const pills = bar.querySelectorAll('.tag-pill');
+  pills.forEach(p => p.remove());
+
+  const manageBtn = bar.querySelector('.manage-labels-btn');
+
+  const allBtn = document.createElement('button');
+  allBtn.className = 'tag-pill' + (currentFilter === 'all' ? ' active' : '');
+  allBtn.dataset.filter = 'all';
+  allBtn.textContent = 'ALL';
+  allBtn.onclick = () => setFilter('all', allBtn);
+  bar.insertBefore(allBtn, manageBtn);
+
+  labels.forEach(label => {
+    const btn = document.createElement('button');
+    btn.className = 'tag-pill' + (currentFilter === label.name ? ' active' : '');
+    btn.style.borderColor = label.color;
+    btn.style.color = currentFilter === label.name ? '#fff' : label.color;
+    btn.style.background = currentFilter === label.name ? label.color : 'transparent';
+    btn.textContent = label.name.toUpperCase();
+    btn.onclick = () => setFilter(label.name, btn);
+    bar.insertBefore(btn, manageBtn);
+  });
+}
+
+function setFilter(name, btn) {
+  currentFilter = name;
+  document.querySelectorAll('.tag-pill').forEach(p => {
+    p.classList.remove('active');
+    const lbl = labels.find(l => l.name === p.dataset.filter || p.dataset.filter === p.textContent.toLowerCase());
+    if (lbl) { p.style.background = 'transparent'; p.style.color = lbl.color; }
+    else { p.style.background = ''; p.style.color = ''; }
+  });
+  btn.classList.add('active');
+  // Color the active pill
+  const lbl = labels.find(l => l.name === name);
+  if (lbl) { btn.style.background = lbl.color; btn.style.color = '#fff'; btn.style.borderColor = lbl.color; }
+  render();
+}
+
+// ── ADD IMAGE MODAL ──
+function openModal() {
+  currentTags = [];
+  currentFile = null;
+  document.getElementById('imgUrl').value   = '';
+  document.getElementById('imgTitle').value = '';
+  document.getElementById('imgDesc').value  = '';
+  document.getElementById('imgPreview').style.display = 'none';
+  document.getElementById('imgPreview').src = '';
+  renderTagChips();
+  document.getElementById('modal').classList.add('open');
+}
+
+function closeModal() { document.getElementById('modal').classList.remove('open'); }
+function handleOverlayClick(e) { if (e.target.id === 'modal') closeModal(); }
+
+function handleFileUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    currentFile = ev.target.result;
+    document.getElementById('imgPreview').src = currentFile;
+    document.getElementById('imgPreview').style.display = 'block';
+    document.getElementById('imgUrl').value = '';
+  };
+  reader.readAsDataURL(file);
+}
+
+function handleUrlInput(val) {
+  if (!val) return;
+  currentFile = null;
+  document.getElementById('imgPreview').src = val;
+  document.getElementById('imgPreview').style.display = 'block';
+}
+
+// ── TAG INPUT ──
+function renderTagChips() {
+  const wrapper = document.getElementById('tagWrapper');
+  const input   = document.getElementById('tag-text-input');
+  // Remove old chips
+  wrapper.querySelectorAll('.tag-chip').forEach(c => c.remove());
+  currentTags.forEach((tag, i) => {
+    const chip = document.createElement('span');
+    chip.className = 'tag-chip';
+    chip.style.background = labelColor(tag);
+    chip.innerHTML = `${tag} <button class="remove-tag" onclick="removeTag(${i})">×</button>`;
+    wrapper.insertBefore(chip, input);
+  });
+}
+
+function addTag(name) {
+  name = name.trim();
+  if (!name || currentTags.includes(name)) return;
+  currentTags.push(name);
+  // Auto-add to labels if missing
+  if (!labels.find(l => l.name.toLowerCase() === name.toLowerCase())) {
+    const colors = ['#1A1AE0','#C44A1A','#1A8C3C','#7A1AC4','#C4A01A','#1AAFC4'];
+    labels.push({ name, color: colors[labels.length % colors.length] });
+    save();
+    renderFilters();
+  }
+  renderTagChips();
+}
+
+function removeTag(i) {
+  currentTags.splice(i, 1);
+  renderTagChips();
+}
+
+function handleTagInput(e) {
+  const input = e.target;
+  if (e.key === 'Enter' || e.key === ',') {
+    e.preventDefault();
+    addTag(input.value.replace(',','').trim());
+    input.value = '';
+    hideSuggestions();
+  } else if (e.key === 'Backspace' && input.value === '' && currentTags.length) {
+    currentTags.pop();
+    renderTagChips();
+  }
+}
+
+function showTagSuggestions(val) {
+  const box = document.getElementById('tagSuggestions');
+  if (!val.trim()) { hideSuggestions(); return; }
+  const matches = labels.filter(l => l.name.toLowerCase().startsWith(val.toLowerCase()) && !currentTags.includes(l.name));
+  if (!matches.length) { hideSuggestions(); return; }
+  box.style.display = 'block';
+  box.innerHTML = matches.map(l =>
+    `<div style="padding:8px 14px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px;color:var(--navy);border-bottom:1px solid #eee" 
+      onmousedown="addTag('${l.name}');document.getElementById('tag-text-input').value='';hideSuggestions()">${l.name}</div>`
+  ).join('');
+}
+
+function hideSuggestions() {
+  document.getElementById('tagSuggestions').style.display = 'none';
+}
+
+// ── SAVE IMAGE ──
+function saveImage() {
+  const src   = currentFile || document.getElementById('imgUrl').value.trim();
+  const title = document.getElementById('imgTitle').value.trim();
+  const desc  = document.getElementById('imgDesc').value.trim();
+
+  // Grab any remaining text in tag input
+  const tagInput = document.getElementById('tag-text-input').value.trim();
+  if (tagInput) addTag(tagInput);
+
+  if (!src) { alert('Please provide an image file or URL.'); return; }
+
+  images.unshift({ src, title, desc, tags: [...currentTags] });
+  save();
+  renderFilters();
+  render();
+  closeModal();
+}
+
+// ── DELETE ──
+function deleteImage(idx, e) {
+  e.stopPropagation();
+  if (!confirm('Remove this image?')) return;
+  images.splice(idx, 1);
+  save();
+  render();
+}
+
+// ── LIGHTBOX ──
+function openLightbox(idx) {
+  const img = images[idx];
+  document.getElementById('lightboxImg').src   = img.src;
+  document.getElementById('lightboxTitle').textContent = img.title || '';
+  document.getElementById('lightboxDesc').textContent  = img.desc  || '';
+  const tagsEl = document.getElementById('lightboxTags');
+  tagsEl.innerHTML = (img.tags || []).map(t =>
+    `<span class="item-tag" style="background:${labelColor(t)}">${t}</span>`
+  ).join('');
+  document.getElementById('lightbox').classList.add('open');
+}
+
+function closeLightbox() { document.getElementById('lightbox').classList.remove('open'); }
+
+// ── LABEL MANAGER ──
+function openLabelManager() {
+  renderExistingLabels();
+  document.getElementById('labelModal').classList.add('open');
+}
+function closeLabelManager() {
+  document.getElementById('labelModal').classList.remove('open');
+  renderFilters();
+  render();
+}
+function handleLabelOverlayClick(e) { if (e.target.id === 'labelModal') closeLabelManager(); }
+
+function addLabel() {
+  const name  = document.getElementById('newLabelName').value.trim();
+  const color = document.getElementById('newLabelColor').value;
+  if (!name) return;
+  if (labels.find(l => l.name.toLowerCase() === name.toLowerCase())) {
+    alert('Label already exists.');
+    return;
+  }
+  labels.push({ name, color });
+  save();
+  document.getElementById('newLabelName').value = '';
+  renderExistingLabels();
+}
+
+function removeLabel(idx) {
+  if (!confirm(`Remove label "${labels[idx].name}"?`)) return;
+  const name = labels[idx].name;
+  labels.splice(idx, 1);
+  // Remove from images
+  images.forEach(img => {
+    if (img.tags) img.tags = img.tags.filter(t => t !== name);
+  });
+  save();
+  renderExistingLabels();
+}
+
+function renderExistingLabels() {
+  const el = document.getElementById('existingLabelsList');
+  el.innerHTML = labels.map((l, i) =>
+    `<span class="tag-chip" style="background:${l.color}">
+      ${l.name}
+      <button class="remove-tag" onclick="removeLabel(${i})">×</button>
+    </span>`
+  ).join('');
+}
+
+// ── DRAG & DROP on upload zone ──
+const uploadZone = document.getElementById('uploadZone');
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault();
+  uploadZone.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file && file.type.startsWith('image/')) {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      currentFile = ev.target.result;
+      document.getElementById('imgPreview').src = currentFile;
+      document.getElementById('imgPreview').style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+  }
+});
+
+// ── KEYBOARD ──
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeLightbox(); closeModal(); closeLabelManager(); }
+});
+
+// ── INIT ──
+renderFilters();
+render();
+</script>
+</body>
+</html>
